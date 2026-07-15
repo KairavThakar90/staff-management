@@ -1,3 +1,6 @@
+from typing import Optional
+from uuid import UUID
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -8,7 +11,6 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.db.database import get_db
 from app.models.projects import Project
@@ -50,14 +52,50 @@ def get_time_session_or_404(
 @router.get(
     "",
     response_model=list[TimeSessionResponse],
-    summary="Get all time sessions",
+    summary="Get all time sessions (optionally filter by project or task)",
 )
 def get_time_sessions(
+    project: Optional[UUID] = None,
+    task: Optional[UUID] = None,
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(TimeSession)
-    ).all()
+    query = select(TimeSession)
+
+    if project is not None:
+
+        proj = db.scalar(
+            select(Project).where(
+                Project.id == project,
+                Project.deleted_at.is_(None),
+            )
+        )
+
+        if proj is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found.",
+            )
+
+        query = query.where(TimeSession.project_id == project)
+
+    if task is not None:
+
+        tsk = db.scalar(
+            select(Task).where(
+                Task.id == task,
+                Task.deleted_at.is_(None),
+            )
+        )
+
+        if tsk is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found.",
+            )
+
+        query = query.where(TimeSession.task_id == task)
+
+    return db.scalars(query).all()
 
 
 @router.get(
@@ -101,14 +139,14 @@ def create_time_session(
 
     if session_data.task_id is not None:
 
-        task = db.scalar(
+        task_obj = db.scalar(
             select(Task).where(
                 Task.id == session_data.task_id,
                 Task.deleted_at.is_(None),
             )
         )
 
-        if task is None:
+        if task_obj is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found.",
@@ -181,14 +219,14 @@ def update_time_session(
 
     if session_data.task_id is not None:
 
-        task = db.scalar(
+        task_obj = db.scalar(
             select(Task).where(
                 Task.id == session_data.task_id,
                 Task.deleted_at.is_(None),
             )
         )
 
-        if task is None:
+        if task_obj is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found.",
@@ -270,14 +308,14 @@ def patch_time_session(
         and update_data["task_id"] is not None
     ):
 
-        task = db.scalar(
+        task_obj = db.scalar(
             select(Task).where(
                 Task.id == update_data["task_id"],
                 Task.deleted_at.is_(None),
             )
         )
 
-        if task is None:
+        if task_obj is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found.",
