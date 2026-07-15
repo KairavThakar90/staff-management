@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from fastapi import (
@@ -51,16 +52,31 @@ def get_task_or_404(
 @router.get(
     "",
     response_model=list[TaskResponse],
-    summary="Get all tasks",
+    summary="Get all tasks (optionally filter by project)",
 )
 def get_tasks(
+    project: Optional[UUID] = None,
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(Task).where(
-            Task.deleted_at.is_(None)
+    query = select(Task).where(Task.deleted_at.is_(None))
+
+    if project is not None:
+        proj = db.scalar(
+            select(Project).where(
+                Project.id == project,
+                Project.deleted_at.is_(None),
+            )
         )
-    ).all()
+
+        if proj is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found.",
+            )
+
+        query = query.where(Task.project_id == project)
+
+    return db.scalars(query).all()
 
 
 @router.get(

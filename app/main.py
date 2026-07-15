@@ -11,7 +11,8 @@ from app.api.permissions import router as permissions_router
 from app.api.projects import router as projects_router
 from app.api.tasks import router as tasks_router
 from app.api.time_sessions import router as time_sessions_router
-
+from app.api.manual_time_entries import router as manual_time_entries_router
+from app.api.time_entry_approvals import router as time_entry_approvals_router
 app = FastAPI(
     title="SMS Backend API",
     description="Employee Tracking & Productivity Management System Backend",
@@ -80,3 +81,13 @@ app.include_router(
     prefix="/api/v1",
 )
 #this is comment
+
+app.include_router(
+    manual_time_entries_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    time_entry_approvals_router,
+    prefix="/api/v1",
+)
