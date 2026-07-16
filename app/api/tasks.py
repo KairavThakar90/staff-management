@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from app.enums.task_status import TaskStatus
 
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from app.db.database import get_db
 from app.models.tasks import Task
@@ -54,19 +56,43 @@ def get_tasks(
         default=None,
         description="Filter by project ID",
     ),
+    status: TaskStatus | None = Query(
+        default=None,
+        description="Filter by task status",
+    ),
+    created_by: int | None = Query(
+        default=None,
+        description="Filter by creator ID",
+    ),
+    start_date: date | None = Query(
+        default=None,
+        description="Filter by start date",
+    ),
+    due_date: date | None = Query(
+        default=None,
+        description="Filter by due date",
+    ),
     db: Session = Depends(get_db),
 ):
     query = select(Task)
 
     if organization is not None:
-        query = query.where(
-            Task.organization_id == organization
-        )
+        query = query.where(Task.organization_id == organization)
 
     if project is not None:
-        query = query.where(
-            Task.project_id == project
-        )
+        query = query.where(Task.project_id == project)
+
+    if status is not None:
+        query = query.where(Task.status == status)
+
+    if created_by is not None:
+        query = query.where(Task.created_by == created_by)
+
+    if start_date is not None:
+        query = query.where(Task.start_date == start_date)
+
+    if due_date is not None:
+        query = query.where(Task.due_date == due_date)
 
     return db.scalars(query).all()
 
