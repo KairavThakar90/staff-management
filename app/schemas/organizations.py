@@ -31,6 +31,7 @@ class OrganizationUpdate(BaseModel):
     logo_url: str | None = None
     timezone: str = Field(min_length=1, max_length=100)
     currency: str = Field(min_length=3, max_length=3)
+    status: OrganizationStatus = Field(default=OrganizationStatus.active)
 
 class OrganizationPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=150)
@@ -38,3 +39,4 @@ class OrganizationPatch(BaseModel):
     logo_url: str | None = None
     timezone: str | None = Field(default=None, min_length=1, max_length=100)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
+    status: OrganizationStatus | None = Field(default=None)
