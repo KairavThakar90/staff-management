@@ -66,7 +66,28 @@ def get_time_entry(
         db,
     )
 
+def validate_time_entry(
+    start_time: datetime,
+    end_time: datetime | None,
+    total_seconds: int,
+):
+    if (
+        end_time is not None
+        and end_time < start_time
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="End time cannot be earlier than start time.",
+        )
 
+    if total_seconds < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Total seconds cannot be negative.",
+        )
+    
+
+    
 @router.post(
     "",
     response_model=TimeEntryResponse,
@@ -88,12 +109,25 @@ def create_time_entry(
 
     except IntegrityError as e:
         db.rollback()
+
         error = str(e.orig)
+
+        if "time_entries_organization_id_fkey" in error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found.",
+            )
+
+        if "time_entries_project_id_fkey" in error:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found.",
+            )
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error.",
-        )
+    )
 
     return new_entry
 
