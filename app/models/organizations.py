@@ -1,20 +1,27 @@
-from uuid import UUID
+from datetime import datetime
 
-from sqlalchemy import CHAR, TEXT, TIMESTAMP, VARCHAR, text
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import BIGINT, CHAR, CheckConstraint, Index, TEXT, TIMESTAMP, VARCHAR, Identity, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
-from datetime import datetime
+from app.enums.organization_status import OrganizationStatus
 
 
 class Organization(Base):
     __tablename__ = "organizations"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'trial', 'inactive', 'suspended')",
+            name="organizations_status_check",
+        ),
+        Index("idx_organizations_name", "name"),
+        Index("idx_organizations_status", "status"),
+    )
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
+    id: Mapped[int] = mapped_column(
+        BIGINT,
+        Identity(always=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
     )
 
     name: Mapped[str] = mapped_column(
@@ -43,7 +50,7 @@ class Organization(Base):
         nullable=False,
     )
 
-    status: Mapped[str] = mapped_column(
+    status: Mapped[OrganizationStatus] = mapped_column(
         VARCHAR(20),
         nullable=False,
         server_default=text("'active'"),

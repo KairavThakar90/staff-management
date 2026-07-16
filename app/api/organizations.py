@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -7,11 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.organizations import Organization
-from app.schemas.organizations import (
-    OrganizationCreate,
-    OrganizationResponse,
-    OrganizationUpdate,
-)
 from app.schemas.organizations import (
     OrganizationCreate,
     OrganizationPatch,
@@ -45,10 +38,10 @@ def get_organizations(
     "/{organization_id}",
     response_model=OrganizationResponse,
     summary="Get organization by ID",
-    description="Returns a single organization by its UUID.",
+    description="Returns a single organization by its ID.",
 )
 def get_organization_by_id(
-    organization_id: UUID,
+    organization_id: int,
     db: Session = Depends(get_db),
 ):
     organization = db.scalar(
@@ -83,6 +76,7 @@ def create_organization(
         logo_url=organization.logo_url,
         timezone=organization.timezone,
         currency=organization.currency,
+        status=organization.status,
     )
 
     try:
@@ -108,7 +102,7 @@ def create_organization(
     description="Updates an existing organization.",
 )
 def update_organization(
-    organization_id: UUID,
+    organization_id: int,
     organization_data: OrganizationUpdate,
     db: Session = Depends(get_db),
 ):
@@ -129,6 +123,7 @@ def update_organization(
     organization.logo_url = organization_data.logo_url
     organization.timezone = organization_data.timezone
     organization.currency = organization_data.currency
+    organization.status = organization_data.status
 
     try:
         db.commit()
@@ -149,10 +144,10 @@ def update_organization(
     "/{organization_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete organization",
-    description="Deletes an organization by its UUID.",
+    description="Deletes an organization by its ID.",
 )
 def delete_organization(
-    organization_id: UUID,
+    organization_id: int,
     db: Session = Depends(get_db),
 ):
     organization = db.scalar(
@@ -182,7 +177,7 @@ def delete_organization(
     description="Updates only the provided organization fields.",
 )
 def patch_organization(
-    organization_id: UUID,
+    organization_id: int,
     organization_data: OrganizationPatch,
     db: Session = Depends(get_db),
 ):

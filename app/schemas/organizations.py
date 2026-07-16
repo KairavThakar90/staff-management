@@ -1,17 +1,17 @@
 from datetime import datetime
-from uuid import UUID
 
+from app.enums.organization_status import OrganizationStatus
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrganizationResponse(BaseModel):
-    id: UUID
+    id: int
     name: str
     slug: str
     logo_url: str | None
     timezone: str
     currency: str
-    status: str
+    status: OrganizationStatus
     created_at: datetime
     updated_at: datetime
 
@@ -23,6 +23,7 @@ class OrganizationCreate(BaseModel):
     logo_url: str | None = None
     timezone: str = Field(min_length=1, max_length=100)
     currency: str = Field(min_length=3, max_length=3)
+    status: OrganizationStatus = OrganizationStatus.active  # add this
 
 class OrganizationUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=150)
