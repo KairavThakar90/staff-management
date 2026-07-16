@@ -1,12 +1,12 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+
 from sqlalchemy import (
     BIGINT,
     BOOLEAN,
     CheckConstraint,
     DATE,
-    Decimal as SQLDecimal,
     ForeignKey,
     Identity,
     INTEGER,
