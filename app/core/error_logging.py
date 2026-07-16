@@ -13,6 +13,7 @@ async def log_api_error(
     error_code: str | None = None,
     stack_trace: str | None = None,
 ):
+    print(f">>> log_api_error CALLED: {response_status} {error_message}")
     try:
         body_bytes = await request.body()
         try:
