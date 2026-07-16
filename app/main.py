@@ -10,6 +10,7 @@ from app.core.error_logging import log_api_error
 from app.api.organizations import router as organizations_router
 from app.api.api_error_logs import router as api_error_logs_router
 from app.api.projects import router as projects_router
+from app.api.tasks import router as tasks_router
 
 app = FastAPI(
     title="SMS Backend API",
@@ -71,6 +72,10 @@ app.include_router(
 )
 app.include_router(
     projects_router,
+    prefix="/api/v1"
+)
+app.include_router(
+    tasks_router,
     prefix="/api/v1"
 )
 app.include_router(

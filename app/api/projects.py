@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
+from fastapi import APIRouter, Depends, HTTPException, Response, Query, status
 from app.db.database import get_db
 from app.models.projects import Project
 from app.schemas.projects import (
@@ -45,12 +45,20 @@ def get_project_or_404(
     summary="Get all projects",
 )
 def get_projects(
+    organization: int | None = Query(
+        default=None,
+        description="Filter projects by organization ID",
+    ),
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(Project)
-    ).all()
+    query = select(Project)
 
+    if organization is not None:
+        query = query.where(
+            Project.organization_id == organization
+        )
+
+    return db.scalars(query).all()
 
 @router.get(
     "/{project_id}",
