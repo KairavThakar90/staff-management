@@ -1,12 +1,12 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Response, Query, status
+
 from app.db.database import get_db
-from app.models.projects import Project
+from app.models.projects import Project, ProjectStatus
 from app.schemas.projects import (
     ProjectCreate,
     ProjectPatch,
@@ -47,7 +47,23 @@ def get_project_or_404(
 def get_projects(
     organization: int | None = Query(
         default=None,
-        description="Filter projects by organization ID",
+        description="Filter by organization ID",
+    ),
+    status: ProjectStatus | None = Query(
+        default=None,
+        description="Filter by project status",
+    ),
+    created_by: int | None = Query(
+        default=None,
+        description="Filter by creator ID",
+    ),
+    is_billable: bool | None = Query(
+        default=None,
+        description="Filter by billable projects",
+    ),
+    start_date: date | None = Query(
+        default=None,
+        description="Filter by start date",
     ),
     db: Session = Depends(get_db),
 ):
@@ -56,6 +72,26 @@ def get_projects(
     if organization is not None:
         query = query.where(
             Project.organization_id == organization
+        )
+
+    if status is not None:
+        query = query.where(
+            Project.status == status
+        )
+
+    if created_by is not None:
+        query = query.where(
+            Project.created_by == created_by
+        )
+
+    if is_billable is not None:
+        query = query.where(
+            Project.is_billable == is_billable
+        )
+
+    if start_date is not None:
+        query = query.where(
+            Project.start_date == start_date
         )
 
     return db.scalars(query).all()
