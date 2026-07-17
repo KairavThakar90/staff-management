@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import Date, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -45,12 +45,84 @@ def get_time_entry_or_404(
     summary="Get all time entries",
 )
 def get_time_entries(
+    organization: int | None = Query(
+        default=None,
+        description="Filter by Organization ID",
+    ),
+    user: int | None = Query(
+        default=None,
+        description="Filter by User ID",
+    ),
+    project: int | None = Query(
+        default=None,
+        description="Filter by Project ID",
+    ),
+    task: int | None = Query(
+        default=None,
+        description="Filter by Task ID",
+    ),
+    status_filter: str | None = Query(
+        default=None,
+        alias="status",
+        description="Filter by Status",
+    ),
+    is_manual: bool | None = Query(
+        default=None,
+        description="Filter Manual Entries",
+    ),
+    is_billable: bool | None = Query(
+        default=None,
+        description="Filter Billable Entries",
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description="Filter by Start Date (YYYY-MM-DD)",
+    ),
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(TimeEntry)
-    ).all()
+    query = select(TimeEntry)
 
+    if organization is not None:
+        query = query.where(
+            TimeEntry.organization_id == organization
+        )
+
+    if user is not None:
+        query = query.where(
+            TimeEntry.user_id == user
+        )
+
+    if project is not None:
+        query = query.where(
+            TimeEntry.project_id == project
+        )
+
+    if task is not None:
+        query = query.where(
+            TimeEntry.task_id == task
+        )
+
+    if status_filter is not None:
+        query = query.where(
+            TimeEntry.status == status_filter
+        )
+
+    if is_manual is not None:
+        query = query.where(
+            TimeEntry.is_manual == is_manual
+        )
+
+    if is_billable is not None:
+        query = query.where(
+            TimeEntry.is_billable == is_billable
+        )
+
+    if start_date is not None:
+        query = query.where(
+            TimeEntry.start_time.cast(Date) == start_date
+        )
+
+    return db.scalars(query).all()
 
 @router.get(
     "/{entry_id}",
@@ -103,7 +175,7 @@ def create_time_entry(
         end_time=entry_data.end_time,
         total_seconds=entry_data.total_seconds,
     )
-    
+
     new_entry = TimeEntry(
         **entry_data.model_dump()
     )
