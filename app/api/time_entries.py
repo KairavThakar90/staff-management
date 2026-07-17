@@ -7,10 +7,13 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.time_entries import TimeEntry
+
 from app.schemas.time_entries import (
     TimeEntryCreate,
     TimeEntryPatch,
     TimeEntryResponse,
+    TimeEntryStartRequest,
+    TimeEntryStopRequest,
     TimeEntryUpdate,
 )
 
@@ -289,6 +292,113 @@ def patch_time_entry(
 
     return entry
 
+
+#start_time API
+@router.post(
+    "/start",
+    response_model=TimeEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start time entry",
+)
+def start_time_entry(
+    request: TimeEntryStartRequest,
+    db: Session = Depends(get_db),
+):
+    running_entry = db.scalar(
+        select(TimeEntry).where(
+            TimeEntry.user_id == request.user_id,
+            TimeEntry.status == "running",
+        )
+    )
+
+    if running_entry:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A timer is already running.",
+        )
+
+    new_entry = TimeEntry(
+        organization_id=request.organization_id,
+        user_id=request.user_id,
+        project_id=request.project_id,
+        task_id=request.task_id,
+        start_time=datetime.utcnow(),
+        end_time=None,
+        total_seconds=0,
+        status="running",
+        is_manual=request.is_manual,
+        is_billable=request.is_billable,
+        description=request.description,
+    )
+
+    try:
+        db.add(new_entry)
+        db.commit()
+        db.refresh(new_entry)
+
+    except IntegrityError as e:
+        db.rollback()
+        error = str(e.orig)
+
+        if "time_entries_organization_id_fkey" in error:
+            raise HTTPException(
+                status_code=404,
+                detail="Organization not found.",
+            )
+
+        if "time_entries_project_id_fkey" in error:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found.",
+            )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        )
+
+    return new_entry
+
+#stop_time API
+
+@router.post(
+    "/stop",
+    response_model=TimeEntryResponse,
+    summary="Stop running time entry",
+)
+def stop_time_entry(
+    request: TimeEntryStopRequest,
+    db: Session = Depends(get_db),
+):
+    running_entry = db.scalar(
+        select(TimeEntry).where(
+            TimeEntry.user_id == request.user_id,
+            TimeEntry.status == "running",
+        )
+    )
+
+    if running_entry is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No running timer found.",
+        )
+
+    running_entry.end_time = datetime.utcnow()
+
+    running_entry.total_seconds = int(
+        (
+            running_entry.end_time
+            - running_entry.start_time
+        ).total_seconds()
+    )
+
+    running_entry.status = "stopped"
+    running_entry.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(running_entry)
+
+    return running_entry
 
 @router.delete(
     "/{entry_id}",

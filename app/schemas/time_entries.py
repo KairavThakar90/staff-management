@@ -88,3 +88,17 @@ class TimeEntryPatch(BaseModel):
         if values.start_time is not None and values.end_time is not None and values.end_time < values.start_time:
             raise ValueError("end_time must not be earlier than start_time")
         return values
+
+#for start_time 
+class TimeEntryStartRequest(BaseModel):
+    organization_id: int
+    user_id: int
+    project_id: int
+    task_id: int
+    is_manual: bool = False
+    is_billable: bool = True
+    description: str | None = None
+
+
+class TimeEntryStopRequest(BaseModel):
+    user_id: int
