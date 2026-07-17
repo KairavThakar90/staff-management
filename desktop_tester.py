@@ -73,6 +73,9 @@ class DesktopTesterApp(QWidget):
         self.org_status_combo.addItems(["active", "inactive"])
         self.org_enabled_checkbox = QCheckBox("Enabled")
         self.org_enabled_checkbox.setChecked(True)
+        self.org_slug_edit = QLineEdit("sb-org-ltd")
+        self.org_timezone_edit = QLineEdit("Asia/Kolkata")
+        self.org_currency_edit = QLineEdit("INR")
 
         create_org_button = QPushButton("Create Organization")
         create_org_button.clicked.connect(self.create_organization)
@@ -81,6 +84,10 @@ class DesktopTesterApp(QWidget):
 
         form.addRow("Name:", self.org_name_edit)
         form.addRow("Status:", self.org_status_combo)
+        form.addRow("Slug:", self.org_slug_edit)
+        form.addRow("Timezone:", self.org_timezone_edit)
+        form.addRow("Currency:", self.org_currency_edit)
+
         form.addRow(self.org_enabled_checkbox)
         form.addRow(create_org_button, refresh_org_button)
 
@@ -204,6 +211,9 @@ class DesktopTesterApp(QWidget):
             "name": self.org_name_edit.text().strip(),
             "status": self.org_status_combo.currentText(),
             "is_enabled": self.org_enabled_checkbox.isChecked(),
+            "slug": self.org_slug_edit.text().strip(),
+            "timezone": self.org_timezone_edit.text().strip(),
+            "currency": self.org_currency_edit.text().strip(),
         }
         status, body = api_request("POST", url, payload)
         self.show_response("Create Organization", status, body)
