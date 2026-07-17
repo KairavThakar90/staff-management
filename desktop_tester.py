@@ -50,7 +50,7 @@ class DesktopTesterApp(QWidget):
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        self.base_url_edit = QLineEdit("http://127.0.0.1:8000/api/v1")
+        self.base_url_edit = QLineEdit("https://staff-management-ashen.vercel.app/api/v1")
         layout.addWidget(QLabel("Base URL:"))
         layout.addWidget(self.base_url_edit)
 
