@@ -126,16 +126,19 @@ class DesktopTesterApp(QWidget):
         form = QFormLayout()
 
         self.task_project_edit = QLineEdit("1")
+        self.task_org_edit = QLineEdit("1")
+        form.addRow("Organization ID:", self.task_org_edit)
         self.task_name_edit = QLineEdit("Example Task")
         self.task_description_edit = QLineEdit("Task for desktop verifier")
         self.task_status_combo = QComboBox()
-        self.task_status_combo.addItems(["open", "in_progress", "completed"])
+        self.task_status_combo.addItems(["todo", "in_progress", "completed"])
 
         create_task_button = QPushButton("Create Task")
         create_task_button.clicked.connect(self.create_task)
         refresh_task_button = QPushButton("Refresh Tasks")
         refresh_task_button.clicked.connect(self.load_tasks)
 
+        form.addRow("Organization ID:", self.task_org_edit)
         form.addRow("Project ID:", self.task_project_edit)
         form.addRow("Name:", self.task_name_edit)
         form.addRow("Description:", self.task_description_edit)
@@ -222,21 +225,25 @@ class DesktopTesterApp(QWidget):
         url = f"{self.get_base_url()}/projects"
         payload = {
             "organization_id": int(self.project_org_edit.text().strip() or 0),
-            "name": self.project_name_edit.text().strip(),
+            "project_name": self.project_name_edit.text().strip(),
             "description": self.project_description_edit.text().strip(),
             "status": self.project_status_combo.currentText(),
             "is_billable": self.project_billable_checkbox.isChecked(),
-        }
+            "created_by": int(self.user_id_edit.text().strip() or 0),
+    }
         status, body = api_request("POST", url, payload)
         self.show_response("Create Project", status, body)
+
 
     def create_task(self):
         url = f"{self.get_base_url()}/tasks"
         payload = {
+            "organization_id": int(self.task_org_edit.text().strip() or 0),
             "project_id": int(self.task_project_edit.text().strip() or 0),
-            "name": self.task_name_edit.text().strip(),
+            "task_name": self.task_name_edit.text().strip(),
             "description": self.task_description_edit.text().strip(),
             "status": self.task_status_combo.currentText(),
+            "created_by": int(self.user_id_edit.text().strip() or 0),
         }
         status, body = api_request("POST", url, payload)
         self.show_response("Create Task", status, body)
