@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import Date, select
@@ -306,30 +306,39 @@ def start_time_entry(
     db: Session = Depends(get_db),
 ):
     running_entry = db.scalar(
-        select(TimeEntry).where(
-            TimeEntry.user_id == request.user_id,
-            TimeEntry.status == "running",
-        )
+    select(TimeEntry).where(
+        TimeEntry.user_id == request.user_id,
+        TimeEntry.status == "running",
     )
+)
 
     if running_entry:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A timer is already running.",
+
+        running_entry.end_time = datetime.now(UTC)
+
+        running_entry.total_seconds = int(
+            (
+                running_entry.end_time
+                - running_entry.start_time
+            ).total_seconds()
         )
+
+        running_entry.status = "stopped"
+
+        running_entry.updated_at = datetime.now(UTC)
 
     new_entry = TimeEntry(
         organization_id=request.organization_id,
         user_id=request.user_id,
         project_id=request.project_id,
         task_id=request.task_id,
-        start_time=datetime.now(timezone.utc),
+        start_time=datetime.now(UTC),
         end_time=None,
         total_seconds=0,
         status="running",
-        is_manual=request.is_manual,
-        is_billable=request.is_billable,
-        description=request.description,
+        is_manual=False,
+        is_billable=True,
+        description=None,
     )
 
     try:
@@ -372,12 +381,14 @@ def stop_time_entry(
     db: Session = Depends(get_db),
 ):
     running_entry = db.scalar(
-        select(TimeEntry).where(
-            TimeEntry.user_id == request.user_id,
-            TimeEntry.status == "running",
-        )
+    select(TimeEntry).where(
+        TimeEntry.organization_id == request.organization_id,
+        TimeEntry.user_id == request.user_id,
+        TimeEntry.project_id == request.project_id,
+        TimeEntry.task_id == request.task_id,
+        TimeEntry.status == "running",
     )
-
+)
     if running_entry is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -391,7 +402,7 @@ def stop_time_entry(
         (now - running_entry.start_time).total_seconds()
     )
     running_entry.status = "stopped"
-    running_entry.updated_at = now
+    running_entry.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(running_entry)

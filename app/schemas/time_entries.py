@@ -95,10 +95,10 @@ class TimeEntryStartRequest(BaseModel):
     user_id: int
     project_id: int
     task_id: int
-    is_manual: bool = False
-    is_billable: bool = True
-    description: str | None = None
 
-
+#for stop_time
 class TimeEntryStopRequest(BaseModel):
+    organization_id: int
     user_id: int
+    project_id: int
+    task_id: int
