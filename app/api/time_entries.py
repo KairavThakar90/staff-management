@@ -5,6 +5,7 @@ from sqlalchemy import Date, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timezone
 from app.db.database import get_db
 from app.models.time_entries import TimeEntry
 
@@ -235,7 +236,7 @@ def update_time_entry(
         total_seconds=entry.total_seconds,
     )
 
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = datetime.now(timezone.utc)
 
     try:
         db.commit()
@@ -277,7 +278,7 @@ def patch_time_entry(
         total_seconds=entry.total_seconds,
     )
 
-    entry.updated_at = datetime.utcnow()
+    entry.updated_at = datetime.now(timezone.utc) 
 
     try:
         db.commit()
@@ -322,7 +323,7 @@ def start_time_entry(
         user_id=request.user_id,
         project_id=request.project_id,
         task_id=request.task_id,
-        start_time=datetime.utcnow(),
+        start_time=datetime.now(timezone.utc),
         end_time=None,
         total_seconds=0,
         status="running",
@@ -383,17 +384,14 @@ def stop_time_entry(
             detail="No running timer found.",
         )
 
-    running_entry.end_time = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
+    running_entry.end_time = now
     running_entry.total_seconds = int(
-        (
-            running_entry.end_time
-            - running_entry.start_time
-        ).total_seconds()
+        (now - running_entry.start_time).total_seconds()
     )
-
     running_entry.status = "stopped"
-    running_entry.updated_at = datetime.utcnow()
+    running_entry.updated_at = now
 
     db.commit()
     db.refresh(running_entry)
