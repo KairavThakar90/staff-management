@@ -98,6 +98,12 @@ def create_time_entry(
     entry_data: TimeEntryCreate,
     db: Session = Depends(get_db),
 ):
+    validate_time_entry(
+        start_time=entry_data.start_time,
+        end_time=entry_data.end_time,
+        total_seconds=entry_data.total_seconds,
+    )
+    
     new_entry = TimeEntry(
         **entry_data.model_dump()
     )
@@ -142,14 +148,18 @@ def update_time_entry(
     entry_data: TimeEntryUpdate,
     db: Session = Depends(get_db),
 ):
-    entry = get_time_entry_or_404(
-        entry_id,
-        db,
-    )
+    entry = get_time_entry_or_404(entry_id, db)
 
     update_data = entry_data.model_dump()
     for field, value in update_data.items():
         setattr(entry, field, value)
+
+    validate_time_entry(
+        start_time=entry.start_time,
+        end_time=entry.end_time,
+        total_seconds=entry.total_seconds,
+    )
+
     entry.updated_at = datetime.utcnow()
 
     try:
@@ -184,6 +194,14 @@ def patch_time_entry(
     update_data = entry_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(entry, field, value)
+
+    # validate AFTER applying the patch, using final values
+    validate_time_entry(
+        start_time=entry.start_time,
+        end_time=entry.end_time,
+        total_seconds=entry.total_seconds,
+    )
+
     entry.updated_at = datetime.utcnow()
 
     try:
