@@ -15,6 +15,8 @@ from app.schemas.time_entry_activity import (
     TimeEntryActivityUpdate,
 )
 
+from app.models.organizations import Organization
+
 router = APIRouter(
     prefix="/time-entry-activity",
     tags=["Time Entry Activity"],
@@ -75,14 +77,25 @@ def create_time_entry_activity(
     activity_data: TimeEntryActivityCreate,
     db: Session = Depends(get_db),
 ):
-    new_activity = TimeEntryActivity(
-        **activity_data.model_dump(exclude_none=True)
+    # 1. Verify organization exists
+    organization_exists = db.scalar(
+        select(Organization.id).where(
+            Organization.id == activity_data.organization_id
+        )
     )
+
+    if organization_exists is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found.",
+        )
+
+    # 2. Verify time entry exists
     time_entry = db.scalar(
-    select(TimeEntry).where(
-        TimeEntry.id == activity_data.time_entry_id
+        select(TimeEntry).where(
+            TimeEntry.id == activity_data.time_entry_id
+        )
     )
-)
 
     if time_entry is None:
         raise HTTPException(
@@ -90,18 +103,25 @@ def create_time_entry_activity(
             detail="Time entry not found.",
         )
 
-    if time_entry.status != "running":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot record activity for a stopped time entry.",
-        )
-    
+    # 3. Verify organization matches
     if time_entry.organization_id != activity_data.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Organization does not match the selected time entry.",
         )
-    
+
+    # 4. Verify time entry is running
+    if time_entry.status != "running":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot record activity for a stopped time entry.",
+        )
+
+    # 5. Create activity
+    new_activity = TimeEntryActivity(
+        **activity_data.model_dump(exclude_none=True)
+    )
+
     try:
         db.add(new_activity)
         db.commit()
@@ -109,26 +129,16 @@ def create_time_entry_activity(
 
     except IntegrityError as e:
         db.rollback()
-        error = str(e.orig)
 
-        if "fk_time_entry_activity_entry" in error or "time_entry_id" in error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Time entry not found.",
-            )
-
-        if "fk_time_entry_activity_org" in error or "organization_id" in error:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found.",
-            )
+        print("TIME ENTRY ACTIVITY DB ERROR:", str(e.orig))
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error.",
+            detail="Database error while creating time entry activity.",
         )
 
     return new_activity
+
 
 
 @router.put(
