@@ -77,68 +77,76 @@ def create_time_entry_activity(
     activity_data: TimeEntryActivityCreate,
     db: Session = Depends(get_db),
 ):
-    # 1. Verify organization exists
-    organization_exists = db.scalar(
-        select(Organization.id).where(
-            Organization.id == activity_data.organization_id
-        )
-    )
-
-    if organization_exists is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found.",
-        )
-
-    # 2. Verify time entry exists
-    time_entry = db.scalar(
-        select(TimeEntry).where(
-            TimeEntry.id == activity_data.time_entry_id
-        )
-    )
-
-    if time_entry is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Time entry not found.",
-        )
-
-    # 3. Verify organization matches
-    if time_entry.organization_id != activity_data.organization_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization does not match the selected time entry.",
-        )
-
-    # 4. Verify time entry is running
-    if time_entry.status != "running":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot record activity for a stopped time entry.",
-        )
-
-    # 5. Create activity
-    new_activity = TimeEntryActivity(
-        **activity_data.model_dump(exclude_none=True)
-    )
-
     try:
+        # 1. Verify organization
+        organization_exists = db.scalar(
+            select(Organization.id).where(
+                Organization.id == activity_data.organization_id
+            )
+        )
+
+        if organization_exists is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found.",
+            )
+
+        # 2. Verify time entry
+        time_entry = db.scalar(
+            select(TimeEntry).where(
+                TimeEntry.id == activity_data.time_entry_id
+            )
+        )
+
+        if time_entry is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Time entry not found.",
+            )
+
+        # 3. Verify organization
+        if time_entry.organization_id != activity_data.organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization does not match the selected time entry.",
+            )
+
+        # 4. Verify running status
+        if time_entry.status != "running":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot record activity for a stopped time entry.",
+            )
+
+        # 5. Create activity
+        new_activity = TimeEntryActivity(
+            **activity_data.model_dump(exclude_none=True)
+        )
+
         db.add(new_activity)
         db.commit()
         db.refresh(new_activity)
 
+        return new_activity
+
+    except HTTPException:
+        raise
+
     except IntegrityError as e:
-            db.rollback()
+        db.rollback()
 
-            error = str(e.orig)
+        raise HTTPException(
+            status_code=500,
+            detail=f"IntegrityError: {str(e.orig)}",
+        )
 
-            print("TIME ENTRY ACTIVITY DB ERROR:", error)
+    except Exception as e:
+        db.rollback()
 
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database error: {error}",
-    )
-    return new_activity
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {type(e).__name__}: {str(e)}",
+        )
 
 
 
