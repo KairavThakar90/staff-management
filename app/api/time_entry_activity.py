@@ -128,15 +128,16 @@ def create_time_entry_activity(
         db.refresh(new_activity)
 
     except IntegrityError as e:
-        db.rollback()
+            db.rollback()
 
-        print("TIME ENTRY ACTIVITY DB ERROR:", str(e.orig))
+            error = str(e.orig)
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error while creating time entry activity.",
-        )
+            print("TIME ENTRY ACTIVITY DB ERROR:", error)
 
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database error: {error}",
+    )
     return new_activity
 
 
