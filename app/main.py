@@ -12,6 +12,7 @@ from app.api.api_error_logs import router as api_error_logs_router
 from app.api.projects import router as projects_router
 from app.api.tasks import router as tasks_router
 from app.api.time_entry_activity import router as time_entry_activity_router
+from app.api.time_entry_app_usage import router as time_entry_app_usage_router
 from app.api.time_entries import router as time_entries_router
 
 app = FastAPI(
@@ -86,6 +87,10 @@ app.include_router(
 )
 app.include_router(
     time_entry_activity_router,
+    prefix="/api/v1"
+)
+app.include_router(
+    time_entry_app_usage_router,
     prefix="/api/v1"
 )
 app.include_router(
