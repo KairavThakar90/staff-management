@@ -1,6 +1,6 @@
-from datetime import datetime, UTC
+from datetime import date, datetime, UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -48,11 +48,42 @@ def get_time_entry_activity_or_404(
     summary="Get all time entry activity records",
 )
 def get_time_entry_activities(
+    organization: int | None = Query(
+        default=None,
+        description="Filter activity records by organization ID",
+    ),
+    time_entry: int | None = Query(
+        default=None,
+        description="Filter activity records by time entry ID",
+    ),
+    recorded_date: date | None = Query(
+        default=None,
+        description="Filter activity records by recorded date",
+    ),
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(TimeEntryActivity)
-    ).all()
+    query = select(TimeEntryActivity)
+
+    if organization is not None:
+        query = query.where(
+            TimeEntryActivity.organization_id == organization
+        )
+
+    if time_entry is not None:
+        query = query.where(
+            TimeEntryActivity.time_entry_id == time_entry
+        )
+
+    if recorded_date is not None:
+        query = query.where(
+            TimeEntryActivity.recorded_at.cast(date) == recorded_date
+        )
+
+    query = query.order_by(
+        TimeEntryActivity.recorded_at.desc()
+    )
+
+    return db.scalars(query).all()
 
 
 @router.get(
