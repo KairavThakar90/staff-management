@@ -74,12 +74,11 @@ def create_time_entry_app_usage(
     usage_data: TimeEntryAppUsageCreate,
     db: Session = Depends(get_db),
 ):
-    
     time_entry = db.scalar(
-    select(TimeEntry).where(
-        TimeEntry.id == usage_data.time_entry_id
+        select(TimeEntry).where(
+            TimeEntry.id == usage_data.time_entry_id
+        )
     )
-)
 
     if time_entry is None:
         raise HTTPException(
@@ -92,15 +91,15 @@ def create_time_entry_app_usage(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot record app usage for a stopped time entry.",
         )
-    
+
     if time_entry.organization_id != usage_data.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Organization does not match the selected time entry.",
         )
-    
+
     new_usage = TimeEntryAppUsage(
-    **usage_data.model_dump(exclude_none=True)
+        **usage_data.model_dump(exclude_none=True)
     )
 
     try:
