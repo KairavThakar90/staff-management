@@ -133,12 +133,14 @@ def create_time_entry_activity(
         raise
 
     except IntegrityError as e:
-        db.rollback()
+            db.rollback()
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"IntegrityError: {str(e.orig)}",
-        )
+            print("TIME ENTRY ACTIVITY DB ERROR:", str(e.orig))
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database error while creating time entry activity.",
+            )
 
     except Exception as e:
         db.rollback()

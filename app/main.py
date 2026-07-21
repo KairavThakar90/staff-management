@@ -37,20 +37,20 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 
 # --- Catches unhandled exceptions (AttributeError, TypeError, etc. -> 500) ---
-# @app.exception_handler(Exception)
-# async def unhandled_exception_handler(request: Request, exc: Exception):
-#     tb = traceback.format_exc()
-#     await log_api_error(
-#         request=request,
-#         response_status=500,
-#         error_message=str(exc),
-#         error_code="INTERNAL_SERVER_ERROR",
-#         stack_trace=tb,
-#     )
-#     return JSONResponse(
-#         status_code=500,
-#         content={"detail": "Internal server error"},
-#     )
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    await log_api_error(
+        request=request,
+        response_status=500,
+        error_message=str(exc),
+        error_code="INTERNAL_SERVER_ERROR",
+        stack_trace=tb,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")
