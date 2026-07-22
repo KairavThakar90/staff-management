@@ -63,12 +63,12 @@ def get_time_entry_app_usage(
 
     if time_entry_id is not None:
         query = query.where(
-            TimeEntryAppUsage.time_entry_id == time_entry_id
+            TimeEntryAppUsage.time_entry_id == time_entry
         )
 
     if application_name is not None:
         query = query.where(
-            TimeEntryAppUsage.application_name == application_name
+            TimeEntryAppUsage.application_name == app
         )
 
     if recorded_from is not None:
