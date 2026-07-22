@@ -48,8 +48,8 @@ def get_time_entry_app_usage_or_404(
 )
 def get_time_entry_app_usage(
     organization: int | None = None,
-    time_entry_id: int | None = None,
-    application_name: str | None = None,
+    time_entry: int | None = None,
+    app: str | None = None,
     recorded_from: datetime | None = None,
     recorded_to: datetime | None = None,
     db: Session = Depends(get_db),
@@ -61,12 +61,12 @@ def get_time_entry_app_usage(
             TimeEntryAppUsage.organization_id == organization
         )
 
-    if time_entry_id is not None:
+    if time_entry is not None:
         query = query.where(
             TimeEntryAppUsage.time_entry_id == time_entry
         )
 
-    if application_name is not None:
+    if app is not None:
         query = query.where(
             TimeEntryAppUsage.application_name == app
         )
