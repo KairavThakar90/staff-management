@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta , UTC
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import select
+from sqlalchemy import select,func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -114,6 +114,41 @@ def get_app_usage_by_id(
 ):
     return get_time_entry_app_usage_or_404(usage_id, db)
 
+@router.get(
+    "/summary/{time_entry_id}",
+    summary="Get application usage summary for a time entry",
+)
+def get_application_usage_summary(
+    time_entry_id: int,
+    db: Session = Depends(get_db),
+):
+    results = db.execute(
+        select(
+            TimeEntryAppUsage.application_name,
+            func.sum(
+                TimeEntryAppUsage.duration_seconds
+            ).label("total_duration_seconds"),
+        )
+        .where(
+            TimeEntryAppUsage.time_entry_id == time_entry_id
+        )
+        .group_by(
+            TimeEntryAppUsage.application_name
+        )
+        .order_by(
+            func.sum(
+                TimeEntryAppUsage.duration_seconds
+            ).desc()
+        )
+    ).all()
+
+    return [
+        {
+            "application_name": row.application_name,
+            "total_duration_seconds": row.total_duration_seconds,
+        }
+        for row in results
+    ]
 
 @router.post(
     "",
