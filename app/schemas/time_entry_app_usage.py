@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -26,6 +26,18 @@ class TimeEntryAppUsageOrganizationSummaryResponse(BaseModel):
     organization_id: int
     total_duration_seconds: int
 
+
+class TimeEntryAppUsageDateRangeSummaryResponse(BaseModel):
+    from_date: date
+    to_date: date
+    total_usage_seconds: int
+    total_duration_seconds: int
+    application_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+    
 class TimeEntryAppUsageCreate(BaseModel):
     organization_id: int = Field(ge=1)
     time_entry_id: int = Field(ge=1)
@@ -57,3 +69,5 @@ class TimeEntryAppUsagePatch(BaseModel):
     recorded_at: datetime | None = None
 
     model_config = ConfigDict(extra="forbid")
+
+
