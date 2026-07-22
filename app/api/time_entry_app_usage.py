@@ -13,6 +13,7 @@ from app.schemas.time_entry_app_usage import (
     TimeEntryAppUsageCreate,
     TimeEntryAppUsagePatch,
     TimeEntryAppUsageResponse,
+    TimeEntryAppUsageSummaryResponse,
     TimeEntryAppUsageUpdate,
 )
 
@@ -102,6 +103,68 @@ def get_time_entry_app_usage(
     )
 
     return db.scalars(query).all()
+
+
+@router.get(
+    "/summary/by-application",
+    response_model=list[TimeEntryAppUsageSummaryResponse],
+    summary="Get application-wise usage summary",
+)
+def get_application_wise_usage_summary(
+    organization: int | None = None,
+    time_entry: int | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+    db: Session = Depends(get_db),
+):
+    query = select(
+        TimeEntryAppUsage.application_name,
+        func.sum(
+            TimeEntryAppUsage.duration_seconds
+        ).label("total_duration_seconds"),
+    )
+
+    if organization is not None:
+        query = query.where(
+            TimeEntryAppUsage.organization_id == organization
+        )
+
+    if time_entry is not None:
+        query = query.where(
+            TimeEntryAppUsage.time_entry_id == time_entry
+        )
+
+    if from_date is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at >= from_date
+        )
+
+    if to_date is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at < (
+                to_date + timedelta(days=1)
+            )
+        )
+
+    query = query.group_by(
+        TimeEntryAppUsage.application_name
+    ).order_by(
+        func.sum(
+            TimeEntryAppUsage.duration_seconds
+        ).desc()
+    )
+
+    results = db.execute(query).all()
+
+    return [
+        TimeEntryAppUsageSummaryResponse(
+            application_name=row.application_name,
+            total_duration_seconds=row.total_duration_seconds or 0,
+        )
+        for row in results
+    ]
+
+
 
 @router.get(
     "/{usage_id}",
