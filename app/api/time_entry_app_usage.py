@@ -44,13 +44,48 @@ def get_time_entry_app_usage_or_404(
 @router.get(
     "",
     response_model=list[TimeEntryAppUsageResponse],
-    summary="Get all app usage records",
+    summary="Get all app usage records with optional filters",
 )
 def get_time_entry_app_usage(
+    organization_id: int | None = None,
+    time_entry_id: int | None = None,
+    application_name: str | None = None,
+    recorded_from: datetime | None = None,
+    recorded_to: datetime | None = None,
     db: Session = Depends(get_db),
 ):
-    return db.scalars(select(TimeEntryAppUsage)).all()
+    query = select(TimeEntryAppUsage)
 
+    if organization_id is not None:
+        query = query.where(
+            TimeEntryAppUsage.organization_id == organization_id
+        )
+
+    if time_entry_id is not None:
+        query = query.where(
+            TimeEntryAppUsage.time_entry_id == time_entry_id
+        )
+
+    if application_name is not None:
+        query = query.where(
+            TimeEntryAppUsage.application_name == application_name
+        )
+
+    if recorded_from is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at >= recorded_from
+        )
+
+    if recorded_to is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at <= recorded_to
+        )
+
+    query = query.order_by(
+        TimeEntryAppUsage.recorded_at.desc()
+    )
+
+    return db.scalars(query).all()
 
 @router.get(
     "/{usage_id}",
@@ -123,10 +158,10 @@ def create_time_entry_app_usage(
                 detail="Organization not found.",
             )
 
-        # raise HTTPException(
-        #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     detail="Database error.",
-        # )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error.",
+        )
 
     return new_usage
 
