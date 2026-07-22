@@ -123,10 +123,10 @@ def create_time_entry_app_usage(
                 detail="Organization not found.",
             )
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database error.",
-        )
+        # raise HTTPException(
+        #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     detail="Database error.",
+        # )
 
     return new_usage
 
