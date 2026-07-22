@@ -1,6 +1,6 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timedelta , UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -56,31 +56,47 @@ def get_time_entry_app_usage(
 ):
     query = select(TimeEntryAppUsage)
 
+    # Filter by organization ID
     if organization is not None:
         query = query.where(
             TimeEntryAppUsage.organization_id == organization
         )
 
+    # Filter by time entry ID
     if time_entry is not None:
         query = query.where(
             TimeEntryAppUsage.time_entry_id == time_entry
         )
 
+    # Filter by application name
     if app is not None:
         query = query.where(
             TimeEntryAppUsage.application_name == app
         )
 
+    # Filter records from the given date
     if from_date is not None:
-        query = query.where(
-            TimeEntryAppUsage.recorded_at >= from_date
+        from_datetime = datetime.combine(
+            from_date,
+            datetime.min.time(),
         )
 
+        query = query.where(
+            TimeEntryAppUsage.recorded_at >= from_datetime
+        )
+
+    # Filter records up to and including the given date
     if to_date is not None:
-        query = query.where(
-            TimeEntryAppUsage.recorded_at <= to_date
+        to_datetime = datetime.combine(
+            to_date + timedelta(days=1),
+            datetime.min.time(),
         )
 
+        query = query.where(
+            TimeEntryAppUsage.recorded_at < to_datetime
+        )
+
+    # Return newest records first
     query = query.order_by(
         TimeEntryAppUsage.recorded_at.desc()
     )
