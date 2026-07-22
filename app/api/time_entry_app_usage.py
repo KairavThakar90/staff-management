@@ -47,7 +47,7 @@ def get_time_entry_app_usage_or_404(
     summary="Get all app usage records with optional filters",
 )
 def get_time_entry_app_usage(
-    organization_id: int | None = None,
+    organization: int | None = None,
     time_entry_id: int | None = None,
     application_name: str | None = None,
     recorded_from: datetime | None = None,
@@ -56,9 +56,9 @@ def get_time_entry_app_usage(
 ):
     query = select(TimeEntryAppUsage)
 
-    if organization_id is not None:
+    if organization is not None:
         query = query.where(
-            TimeEntryAppUsage.organization_id == organization_id
+            TimeEntryAppUsage.organization_id == organization
         )
 
     if time_entry_id is not None:
