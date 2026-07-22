@@ -11,6 +11,7 @@ from app.models.time_entries import TimeEntry
 
 from app.schemas.time_entry_app_usage import (
     TimeEntryAppUsageCreate,
+    TimeEntryAppUsageOrganizationSummaryResponse,
     TimeEntryAppUsagePatch,
     TimeEntryAppUsageResponse,
     TimeEntryAppUsageSummaryResponse,
@@ -88,7 +89,7 @@ def get_time_entry_app_usage(
 
     # Filter records up to and including the given date
     if to_date is not None:
-        to_datetime = datetime.combine(
+        to_datetime = datetime.combine( 
             to_date + timedelta(days=1),
             datetime.min.time(),
         )
@@ -177,8 +178,64 @@ def get_app_usage_by_id(
 ):
     return get_time_entry_app_usage_or_404(usage_id, db)
 
+
+@router.get(
+    "/summary/by-organization",
+    response_model=list[TimeEntryAppUsageOrganizationSummaryResponse],
+    summary="Get organization-wise usage summary",
+)
+def get_organization_wise_usage_summary(
+    organization: int | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+    db: Session = Depends(get_db),
+):
+    query = select(
+        TimeEntryAppUsage.organization_id,
+        func.sum(
+            TimeEntryAppUsage.duration_seconds
+        ).label("total_duration_seconds"),
+    )
+
+    if organization is not None:
+        query = query.where(
+            TimeEntryAppUsage.organization_id == organization
+        )
+
+    if from_date is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at >= from_date
+        )
+
+    if to_date is not None:
+        query = query.where(
+            TimeEntryAppUsage.recorded_at < (
+                to_date + timedelta(days=1)
+            )
+        )
+
+    query = query.group_by(
+        TimeEntryAppUsage.organization_id
+    ).order_by(
+        func.sum(
+            TimeEntryAppUsage.duration_seconds
+        ).desc()
+    )
+
+    results = db.execute(query).all()
+
+    return [
+        TimeEntryAppUsageOrganizationSummaryResponse(
+            organization_id=row.organization_id,
+            total_duration_seconds=row.total_duration_seconds or 0,
+        )
+        for row in results
+    ]
+
+
 @router.get(
     "/summary/{time_entry_id}",
+    response_model=list[TimeEntryAppUsageSummaryResponse],
     summary="Get application usage summary for a time entry",
 )
 def get_application_usage_summary(

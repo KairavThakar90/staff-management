@@ -21,7 +21,11 @@ class TimeEntryAppUsageSummaryResponse(BaseModel):
     application_name: str
     total_duration_seconds: int
 
-    
+
+class TimeEntryAppUsageOrganizationSummaryResponse(BaseModel):
+    organization_id: int
+    total_duration_seconds: int
+
 class TimeEntryAppUsageCreate(BaseModel):
     organization_id: int = Field(ge=1)
     time_entry_id: int = Field(ge=1)
