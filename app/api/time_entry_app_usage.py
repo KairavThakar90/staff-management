@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
@@ -50,8 +50,8 @@ def get_time_entry_app_usage(
     organization: int | None = None,
     time_entry: int | None = None,
     app: str | None = None,
-    recorded_from: datetime | None = None,
-    recorded_to: datetime | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
     db: Session = Depends(get_db),
 ):
     query = select(TimeEntryAppUsage)
@@ -71,14 +71,14 @@ def get_time_entry_app_usage(
             TimeEntryAppUsage.application_name == app
         )
 
-    if recorded_from is not None:
+    if from_date is not None:
         query = query.where(
-            TimeEntryAppUsage.recorded_at >= recorded_from
+            TimeEntryAppUsage.recorded_at >= from_date
         )
 
-    if recorded_to is not None:
+    if to_date is not None:
         query = query.where(
-            TimeEntryAppUsage.recorded_at <= recorded_to
+            TimeEntryAppUsage.recorded_at <= to_date
         )
 
     query = query.order_by(
